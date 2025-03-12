@@ -518,7 +518,7 @@
             Controls.Add(statusStrip1);
             Controls.Add(pictureBox1);
             Name = "Form1";
-            Text = "FFX Lightning Dodger";
+            Text = "StupidFlander's FFX Lightning Dodger";
             ((System.ComponentModel.ISupportInitialize)pictureBox1).EndInit();
             statusStrip1.ResumeLayout(false);
             statusStrip1.PerformLayout();

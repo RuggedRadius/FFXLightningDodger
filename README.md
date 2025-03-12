@@ -1,7 +1,9 @@
-# FFXLightningDodger
+# StupidFlander's FFX Lightning Dodger
 
 ## Purpose
 This application automates the dodging of lightning in Final Fantasy X. This was designed and tested for PS2 emulation (in particular the FFX International Edition on PCXS2), but should also work with the Steam HD remasters as well. I used this tool to get 200+ consecutive lightning bolt dodges on 200% base game speed.
+
+![UI Screenshot](Documentation/proof.png)
 
 ## How It Works
 This program follows this simple algorithm:

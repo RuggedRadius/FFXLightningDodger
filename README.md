@@ -10,12 +10,12 @@ This program follows this simple algorithm:
 1. Samples pixels from a designated position on screen.
 2. Compares all pixels in selection against pre-defined colour (colour of lightning bolt flash)
 3. If a lightning bolt IS NOT detected, go back to step 1.
-4. Once a lightning bolt IS detected:
-  i.  A small wait occurs to simulate human reaction times
-  ii. A signal is sent using XInput to signify a button is being held down.
-  iii. A small wait occurs to simulate human button press duration.
-  iv. A signal is sent using XInput to signify the button has been released.
-  v. A small wait occurs to avoid processing the small lightning bolt twice.
+4. Once a lightning bolt IS detected:\
+  i.  A small wait occurs to simulate human reaction times\
+  ii. A signal is sent using XInput to signify a button is being held down.\
+  iii. A small wait occurs to simulate human button press duration.\
+  iv. A signal is sent using XInput to signify the button has been released.\
+  v. A small wait occurs to avoid processing the small lightning bolt twice.\
 5. Repeat from step 1.
 
 

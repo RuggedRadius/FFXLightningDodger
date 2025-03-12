@@ -43,10 +43,6 @@ namespace FFXLightningDodger
         {
             numTolerance.Value = 20;
 
-            //numRedVal.Value = 80;
-            //numGreenVal.Value = 80;
-            //numBlueVal.Value = 99;
-
             numRedVal.Value = 207;
             numGreenVal.Value = 206;
             numBlueVal.Value = 254;
@@ -300,7 +296,6 @@ namespace FFXLightningDodger
             this.FormBorderStyle = FormBorderStyle.None;
             this.StartPosition = FormStartPosition.Manual;
             this.BackColor = color;
-            //this.TransparencyKey = color; // Make it a transparent window
             this.TopMost = true;
             this.ShowInTaskbar = false;
             this.Bounds = new Rectangle(x, y, size, size);

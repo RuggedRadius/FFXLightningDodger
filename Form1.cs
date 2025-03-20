@@ -1,6 +1,8 @@
+using FFXLightningDodger.Models;
 using Nefarius.ViGEm.Client;
 using Nefarius.ViGEm.Client.Targets;
 using Nefarius.ViGEm.Client.Targets.Xbox360;
+using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 
 namespace FFXLightningDodger
@@ -10,10 +12,14 @@ namespace FFXLightningDodger
         private static ViGEmClient client;
         private static IXbox360Controller controller;
 
-        private static bool IsRunning;
+        // Lightning Dodger
+        private static bool IsRunning_LightningDodger;
         private static int boltCounter;
-
         private static Screen SelectedScreen;
+
+        // Input Programmer
+        private static bool IsRunning_InputProgrammer;
+        private static List<IPSegment> _ipSegments;
 
         [DllImport("User32.dll")]
         private static extern short GetAsyncKeyState(int vKey);
@@ -28,8 +34,12 @@ namespace FFXLightningDodger
             InitialiseOutputSignalSettings();
             InitialiseController();
 
+            InitialiseIP();
+
             boltCounter = 0;
             tsLblStatus.Text = "Ready";
+
+            _ipSegments = new List<IPSegment>();
         }
 
         private void InitialiseController()
@@ -39,6 +49,7 @@ namespace FFXLightningDodger
             controller.Connect();
         }
 
+        #region Lightning Dodger
         private void InitialiseColourSettings()
         {
             numTolerance.Value = 20;
@@ -133,9 +144,9 @@ namespace FFXLightningDodger
                 {
                     g.CopyFromScreen(
                         SelectedScreen.Bounds.Left + (int)numXCoord.Value,
-                        SelectedScreen.Bounds.Top + (int)numYCoord.Value, 
-                        0, 
-                        0, 
+                        SelectedScreen.Bounds.Top + (int)numYCoord.Value,
+                        0,
+                        0,
                         new Size(size, size));
 
                     for (int x = 0; x < size; x++)
@@ -201,7 +212,7 @@ namespace FFXLightningDodger
 
         private void Detect()
         {
-            while (IsRunning)
+            while (IsRunning_LightningDodger)
             {
                 if (CheckForWhitePixels())
                 {
@@ -221,20 +232,20 @@ namespace FFXLightningDodger
 
         private void btnStart_Click(object sender, EventArgs e)
         {
-            if (IsRunning)
+            if (IsRunning_LightningDodger)
                 return;
 
             boltCounter = 0;
             lblBoltCounter.Text = $"{boltCounter}";
 
-            IsRunning = true;
+            IsRunning_LightningDodger = true;
             tsLblStatus.Text = "Running...";
             Task.Run(() => Detect());
         }
 
         private void btnStop_Click(object sender, EventArgs e)
         {
-            IsRunning = false;
+            IsRunning_LightningDodger = false;
             tsLblStatus.Text = "Ready";
         }
 
@@ -248,7 +259,7 @@ namespace FFXLightningDodger
 
         private void numRedVal_ValueChanged(object sender, EventArgs e)
         {
-            if (IsRunning)
+            if (IsRunning_LightningDodger)
             {
                 MessageBox.Show("Cannot change colour while running.");
                 return;
@@ -262,7 +273,7 @@ namespace FFXLightningDodger
 
         private void numGreenVal_ValueChanged(object sender, EventArgs e)
         {
-            if (IsRunning)
+            if (IsRunning_LightningDodger)
             {
                 MessageBox.Show("Cannot change colour while running.");
                 return;
@@ -276,7 +287,7 @@ namespace FFXLightningDodger
 
         private void numBlueVal_ValueChanged(object sender, EventArgs e)
         {
-            if (IsRunning)
+            if (IsRunning_LightningDodger)
             {
                 MessageBox.Show("Cannot change colour while running.");
                 return;
@@ -287,6 +298,132 @@ namespace FFXLightningDodger
                 (int)numGreenVal.Value,
                 (int)numBlueVal.Value);
         }
+        #endregion
+
+        #region Input Programmer
+        private void InitialiseIP()
+        {
+            // Monitor selection
+            cbo_IP_MonitorSelection.Items.Clear();
+            foreach (Screen screen in Screen.AllScreens)
+            {
+                cbo_IP_MonitorSelection.Items.Add(screen.DeviceName);
+            }
+            cbo_IP_MonitorSelection.SelectedIndex = 0;
+
+            // Send signal
+            cbo_IP_SendSignal.Items.Clear();
+            foreach (var signal in Enum.GetValues(typeof(InputSignal)))
+            {
+                cbo_IP_SendSignal.Items.Add(signal);
+            }
+        }
+
+        private void btn_IP_AddSegment_Click(object sender, EventArgs e)
+        {
+            try
+            {
+                var segment = new IPSegment
+                {
+                    SegmentName = txt_IP_SegmentName.Text,
+                    PreDelay = (int)num_IP_PreDelay.Value,
+                    PressDuration = (int)num_IP_PressDuration.Value,
+                    PostDelay = (int)num_IP_PostDelay.Value,
+                    InputSignal = (InputSignal)cbo_IP_SendSignal.SelectedIndex,
+                    DetectionColour = Color.FromArgb(255,
+                        (int)num_IP_ColourValueR.Value,
+                        (int)num_IP_ColourValueG.Value,
+                        (int)num_IP_ColourValueB.Value
+                    ),
+                    ColourTolerance = (int)num_IP_ColourTolerance.Value,
+                    MonitorName = Screen.AllScreens[cbo_IP_MonitorSelection.SelectedIndex].DeviceName,
+                    XCoordinate = (int)num_IP_XCoordinate.Value,
+                    YCoordinate = (int)num_IP_YCoordinate.Value,
+                    SampleSize = (int)num_IP_SampleSize.Value
+                };
+
+                _ipSegments.Add(segment);
+
+                RepopulateIPSegmentQueue();
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show($"{ex.Message}",
+                    "Error adding segment to queue",
+                    MessageBoxButtons.OK,
+                    MessageBoxIcon.Error);
+            }
+        }
+
+        private void RepopulateIPSegmentQueue()
+        {
+            lst_IP_SegmentQueue.Items.Clear();
+
+            foreach (var segment in _ipSegments)
+            {
+                lst_IP_SegmentQueue.Items.Add(segment.SegmentName);
+            }
+        }
+
+
+        private bool ExecuteSegment(IPSegment segment)
+        {
+            
+            if (segment.PreDelay > 0)
+            {
+                Thread.Sleep(segment.PreDelay);
+            }
+
+            var button = segment.InputSignal.ToButton();
+            controller.SetButtonState(button, true);
+            Thread.Sleep(segment.PressDuration);
+            controller.SetButtonState(button, false);
+
+            if (segment.PostDelay > 0)
+            {
+                Thread.Sleep(segment.PostDelay);
+            }
+
+            // Check for end trigger
+            var endTriggered = false;
+
+            return endTriggered;
+        }
+
+        private void btn_IP_Start_Click(object sender, EventArgs e)
+        {
+            if (IsRunning_InputProgrammer)
+                return;
+
+            IsRunning_InputProgrammer = true;
+
+            Task.Run(() =>
+            {
+                int index = 0;
+                while (IsRunning_InputProgrammer)
+                {
+                    lst_IP_SegmentQueue.Invoke(new Action(() => lst_IP_SegmentQueue.SelectedIndex = index));
+
+                    ExecuteSegment(_ipSegments[index]);
+
+                    index++;
+
+                    if (index >= _ipSegments.Count)
+                    {
+                        index = 0;
+                    }
+                }
+            });
+
+        }
+
+        private void btn_IP_Stop_Click(object sender, EventArgs e)
+        {
+            IsRunning_InputProgrammer = false;
+        }
+        #endregion
+
+
     }
 
     public class MarkerForm : Form
